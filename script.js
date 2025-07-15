@@ -1,10 +1,9 @@
-
 const API_KEY = "b22ad2978ce422c7c76049788b3a242d";
 const chatBox = document.getElementById("chat-box");
 const form = document.getElementById("chat-form");
 const input = document.getElementById("user-input");
 
-// Genre map for basic keyword matching
+// Genre keyword to TMDb genre ID mapping
 const genres = {
   action: 28,
   adventure: 12,
@@ -38,14 +37,14 @@ form.addEventListener("submit", async (e) => {
   const genreId = extractGenre(userText.toLowerCase());
 
   if (genreId) {
-    appendMessage("Searching for movies...", "bot");
+    appendMessage("🔍 Searching for a great movie...", "bot");
     const movie = await fetchMovieByGenre(genreId);
     if (movie) {
       setTimeout(() => {
-        appendMessage(`🎬 *${movie.title}*\n📅 ${movie.release_date}\n⭐ ${movie.vote_average}/10\n\n${movie.overview}`, "bot");
+        appendMovieMessage(movie);
       }, 800);
     } else {
-      appendMessage("I couldn't find a movie right now. Try another genre?", "bot");
+      appendMessage("Sorry, I couldn't find any movie for that genre right now. Try another one?", "bot");
     }
   } else {
     appendMessage("Please specify a genre like action, comedy, horror, etc.", "bot");
@@ -60,6 +59,25 @@ function appendMessage(text, sender) {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+function appendMovieMessage(movie) {
+  const movieMessage = document.createElement("div");
+  movieMessage.classList.add("message", "bot");
+
+  const posterUrl = movie.poster_path
+    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+    : "";
+
+  movieMessage.innerHTML = `
+    <strong>🎬 ${movie.title}</strong><br/>
+    <small>📅 ${movie.release_date || "Unknown"} | ⭐ ${movie.vote_average}/10</small><br/>
+    <p>${movie.overview || "No overview available."}</p>
+    ${posterUrl ? `<img src="${posterUrl}" alt="Poster" class="poster" />` : ""}
+  `;
+
+  chatBox.appendChild(movieMessage);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
 function extractGenre(text) {
   for (let keyword in genres) {
     if (text.includes(keyword)) {
@@ -71,12 +89,13 @@ function extractGenre(text) {
 
 async function fetchMovieByGenre(genreId) {
   try {
-    const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&sort_by=popularity.desc&with_genres=${genreId}`);
+    const res = await fetch(
+      `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&sort_by=popularity.desc&with_genres=${genreId}`
+    );
     const data = await res.json();
     const results = data.results;
     if (results && results.length > 0) {
-      const random = results[Math.floor(Math.random() * results.length)];
-      return random;
+      return results[Math.floor(Math.random() * results.length)];
     }
   } catch (error) {
     console.error("API Error:", error);
